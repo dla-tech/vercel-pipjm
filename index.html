@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Programaciones mensuales</title>
+<style>
+  :root{
+    --bg:url("https://raw.githubusercontent.com/dla-tech/Media-privada/refs/heads/main/IMG_7782.jpeg");
+    --card: rgba(255,255,255,.86);
+    --ink: #0b1421;
+    --accent: #2563eb;
+    --shadow: 0 8px 20px rgba(0,0,0,.15);
+    --radius: 14px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);
+    background:#0b1421; min-height:100svh;
+  }
+  body::before{content:"";position:fixed;inset:0;background-image:var(--bg);background-size:cover;background-position:center;filter:brightness(.9) saturate(.9);z-index:-2}
+  body::after{content:"";position:fixed;inset:0;background:linear-gradient(180deg,rgba(8,11,20,.35),rgba(8,11,20,.6));z-index:-1}
+
+  /* ===== Splash / Pantalla de carga ===== */
+  .loading,
+  .loading body { overflow:hidden; height:100%; }
+  #loader {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+    z-index: 100000;
+    opacity: 1;
+    transition: opacity 2000ms ease;
+  }
+  #loader img {
+    position: absolute;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    z-index: 1;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+  #loader.hide { opacity: 0; pointer-events: none; }
+
+  /* Canvas de fuego detrás del logo */
+#loader-canvas{
+  position:fixed;
+  top:0; left:0;
+  width:100vw;
+  height:100vh;
+  display:block;
+  z-index:0;
+  pointer-events:none;
+}
+#loader img{ position:absolute; inset:0; z-index:1; }
+
+  /* ===== NAV responsive y ordenado ===== */
+  header{
+    position:sticky; top:0; z-index:50;
+    backdrop-filter:saturate(1.2) blur(8px);
+    background:rgba(255,255,255,.55);
+    border-bottom:1px solid rgba(0,0,0,.08);
+  }
+  /* Auto-ocultar barra en scroll */
+  header{ transition: transform .4s ease; will-change: transform; }
+  header.hide{ transform: translateY(-100%); }
+
+  /* MÓVIL: grilla de botones iguales */
+  .nav{
+    max-width:1100px; margin:0 auto; padding:8px 10px;
+    display:grid; gap:8px;
+    grid-template-columns: repeat(2, 1fr); /* 2 columnas en móvil */
+  }
+  .nav .spacer{ display:none; } /* no hace falta en móvil */
+  .nav a{
+    display:block;
+    text-align:center;
+    text-decoration:none;
+    font-weight:600;
+    color:#0b1421;
+    padding:10px 10px;
+    font-size:14px;
+    border-radius:10px;
+    border:1px solid rgba(0,0,0,.08);
+    background:rgba(255,255,255,.5);
+  }
+  .nav a.active{
+    background:#e9efff;
+    color:#2563eb;
+    border-color:rgba(37,99,235,.25);
+  }
+
+  /* iOS compacto: mantén 2 columnas pero reduce tamaño visual */
+  @supports (-webkit-touch-callout: none){
+    @media (max-width: 430px){
+      .nav{ padding:8px 10px; gap:8px; }
+      .nav a{ padding:9px 10px; font-size:13.5px; border-radius:10px; }
+    }
+    @media (max-width: 360px){
+      .nav{ padding:6px 8px; gap:6px; }
+      .nav a{ padding:8px 8px; font-size:13px; }
+    }
+  }
+
+  /* TABLET+: vuelve a barra horizontal */
+  @media (min-width: 768px){
+    .nav{
+      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+      padding:10px 16px;
+    }
+    .nav .spacer{ flex:1; display:block; }
+    .nav a{
+      padding:10px 12px;
+      min-width:auto;
+      background:transparent;
+      border:0;
+    }
+    .nav a.active{
+      background:#e9efff;
+      border:0;
+    }
+  }
+  /* Botón "Descarga" violeta fijo en el menú */
+.nav .nav-download{
+  background:#8b5cf6 !important; /* violeta */
+  color:#fff !important;
+  border:0 !important;
+  border-radius:10px;
+  padding:10px 12px;
+  font-weight:700;
+}
+@media (min-width:768px){
+  .nav .nav-download{ padding:10px 12px; }
+}
+  .wrap{max-width:1100px; margin:0 auto; padding:22px 16px}
+
+  .card{background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:14px}
+  h1,h2{color:#fff; text-align:center; margin:10px 0 14px}
+  section{scroll-margin-top:80px; margin-bottom:22px}
+  iframe{border:0; width:100%; border-radius:10px}
+  .grid{display:grid; gap:12px}
+  @media(min-width:720px){
+    .grid.cols-2{grid-template-columns:1fr 1fr}
+    .grid.cols-3{grid-template-columns:repeat(3,1fr)}
+  }
+  .grid.cols-1{grid-template-columns:1fr}
+  .subhead{margin:0 0 6px; font-weight:700; color:#0b1421}
+
+  .btn{display:block; text-align:center; text-decoration:none; padding:14px 16px;
+       border-radius:12px; font-weight:700; color:#fff}
+  .btn-g{background:#34C759}
+  .btn-i{background:#4285F4}
+  .btn-d{background:#0f172a}
+  .btn-y{background:#facc15; color:#000;}
+  .btn-yt{background:#ff0000; color:#fff;}
+
+  /* Live YouTube styles */
+  .live-wrap { display:none; margin-top:10px; border-radius:12px; overflow:hidden; box-shadow:0 6px 16px rgba(0,0,0,.2); background:#000 }
+  .live-head { display:flex; align-items:center; gap:8px; padding:10px 12px; color:#fff; font-weight:800; letter-spacing:.2px; background:linear-gradient(90deg,#b91c1c,#ef4444) }
+  .live-dot { width:10px; height:10px; border-radius:999px; background:#fff; box-shadow:0 0 8px rgba(255,255,255,.9) }
+  .live-player { position:relative; aspect-ratio:16/9; background:#000 }
+  .live-player iframe { position:absolute; inset:0; width:100%; height:100%; border:0 }
+  .live-cta { display:block; padding:10px 12px; text-align:center; text-decoration:none; color:#fff; font-weight:700; background:#111 }
+
+  .note{font-size:.92em; opacity:.8}
+  .list{margin:0; padding-left:18px}
+  .footer{color:#e5e7eb; text-align:center; font-size:.9em; padding:26px 0}
+
+  /* Modal contacto */
+  .contact-modal {
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,0.6);
+    align-items:center; justify-content:center;
+    z-index:10000;
+  }
+  .contact-modal .modal-content {
+    background:#fff; padding:20px; border-radius:12px;
+    text-align:center; max-width:300px; width:90%;
+    box-shadow:0 6px 16px rgba(0,0,0,.25);
+  }
+  .contact-modal .btn {
+    display:block; margin:10px 0; text-decoration:none;
+    padding:12px; border-radius:8px; color:#fff; font-weight:600;
+  }
+  .contact-modal .btn-d {
+    display:block;
+    margin:10px 0;
+    padding:12px;
+    border-radius:8px;
+    color:#fff;
+    font-weight:600;
+    background:#444;
+    border:none;
+    width:100%;
+    text-align:center;
+  }
+</style>
+<style id="preload-style">
+  body > *:not(#loader) {
+    visibility: hidden;
+  }
+</style>
+<script>
+  // Bloquea scroll desde el primer paint
+  document.documentElement.classList.add('loading');
+</script>
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+<link rel="apple-touch-icon-precomposed" sizes="180x180" href="icons/icon-180.png">
+<link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png">
+<meta name="theme-color" content="#0b1421">
+</head>
+<body>
+
+  <div id="loader" aria-label="Pantalla de carga">
+    <video autoplay muted loop playsinline preload="auto"
+           style="position: absolute; inset: 0; width: 100vw; height: 100vh; object-fit: cover; z-index: 0; pointer-events: none;">
+      <source src="" type="video/mp4">
+    </video>
+    <img src="https://raw.githubusercontent.com/dla-tech/Media-privada/refs/heads/main/IMG_8023.jpeg"
+         alt="Logo de la iglesia"
+         style="position:absolute; inset:0; width:100vw; height:100vh; object-fit:cover; z-index:1; user-select:none; -webkit-user-drag:none;">
+  </div>
+
+
+<header>
+  <nav class="nav">
+    <div class="spacer"></div>
+    <a href="#calendarios" class="navlink">Calendarios</a>
+    <a href="#redes" class="navlink">Redes sociales</a>
+    <a href="#ubicacion-templo" class="navlink">Ubicación del templo</a>
+    <a href="#ubicacion-cultos" class="navlink">Ubicación de los cultos</a>
+    <a href="#proposito" class="navlink">Propósito</a>
+    <a href="#" id="nav-descarga" class="navlink nav-download">Descarga</a>
+    <a href="#" id="nav-notify" class="navlink" title="Activar notificaciones" aria-label="Activar notificaciones">🔔</a>
+  </nav>
+</header>
+
+<main class="wrap">
+
+  <!-- CALENDARIOS -->
+  <section id="calendarios">
+    <h1 style="font-size:1.35em; line-height:1.25; font-weight:700;">
+      Primera Iglesia Pentecostal de Jesucristo de Maunabo, P.R. Inc.
+    </h1>
+    <!-- Promoción dinámica -->
+    <div id="promo-banner" style="display: none; margin: 12px auto; text-align: center;">
+      <img id="promo-img" src="" alt="Promoción"
+           style="width: 70%; max-width: 500px; border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,.2); display: inline-block; cursor: pointer;"
+           title="Toca para descargar esta promoción">
+    </div>
+
+<script>
+  (function(){
+    // Pega aquí el link de la imagen cuando tengas promoción
+    const promoLink = "https://raw.githubusercontent.com/dla-tech/Media-privada/refs/heads/main/7f6d0715-e757-4a11-a12a-771690367985.jpeg";
+
+    const banner = document.getElementById("promo-banner");
+    const img = document.getElementById("promo-img");
+
+    if (promoLink && banner && img){
+      img.src = promoLink;
+      banner.style.display = "block";
+
+      // Descarga al tocar/clicar la imagen
+      img.addEventListener("click", async () => {
+        try {
+          const res = await fetch(promoLink, { mode: "cors", cache: "no-store" });
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+
+          // Nombre de archivo amigable
+          const nameFromUrl = (promoLink.split("/").pop() || "promocion")
+                                .split("?")[0]
+                                .replace(/\.[^/.]+$/, "") + ".jpg";
+
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = nameFromUrl; // fuerza descarga donde sea posible
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            URL.revokeObjectURL(url);
+            a.remove();
+          }, 2000);
+        } catch (e) {
+          // Fallback: abrir en nueva pestaña (iOS Safari normalmente permite guardar desde ahí)
+          window.open(promoLink, "_blank", "noopener");
+        }
+      });
+    }
+  })();
+</script>
+    <div class="card" style="margin-bottom:12px">
+      <iframe
+        src="https://calendar.google.com/calendar/embed?src=72086005a3ac9a324642e6977fb8f296d531c3520b03c6cf342495ed215e0186%40group.calendar.google.com&ctz=America%2FPuerto_Rico&bgcolor=%23f4f7fb&hl=en"
+        title="Calendario Google" loading="lazy" referrerpolicy="no-referrer-when-downgrade" height="600">
+      </iframe>
+    </div>
+
+    <div class="grid cols-3">
+      <a id="btn-gcal" class="btn btn-g" href="#" target="_self">🟢 Añadir en Google Calendar (Android/PC)</a>
+      <a id="btn-ios" class="btn btn-i" href="#" target="_self">📱 Añadir en Apple Calendar (iPhone/Mac)</a>
+      <a id="btn-download" class="btn btn-y" href="#" target="_self">⬇️ Descargar Google Calendar</a>
+    </div>
+
+    <!-- Modal de elección para Google Calendar -->
+    <div id="gcal-choice" class="contact-modal">
+      <div class="modal-content">
+        <h3 style="margin:0 0 10px">¿Cómo quieres abrirlo?</h3>
+        <a id="gcal-open-web" class="btn btn-g" href="#">🌐 Abrir en la web</a>
+        <button id="gcal-open-app" class="btn-d">📱 Abrir en la app</button>
+        <button id="gcal-cancel" class="btn-d" style="background:#6b7280">Cancelar</button>
+      </div>
+    </div>
+
+    <p class="card note" style="margin-top:12px">
+      📌 Todo cambio en la programación de la iglesia se reflejará automáticamente en tu calendario.
+    </p>
+  </section>
+  <!-- Modal Descarga / Instalar App -->
+<div id="dl-modal" class="contact-modal" aria-hidden="true">
+  <div class="modal-content">
+    <h3 style="margin:0 0 10px">Instalar la app</h3>
+
+    <!-- Android -->
+    <div id="dl-android" style="display:none">
+      <p style="margin:6px 0 10px; font-size:.95em; color:#111">Android:</p>
+      <button id="btn-install-android" class="btn-d" style="background:#10b981">📲 Instalar en Android</button>
+      <p id="android-fallback" style="display:none; font-size:.9em; color:#555; margin-top:8px">
+        Si no aparece el diálogo, abre el menú ⋮ de Chrome y toca <strong>“Instalar app”</strong>.
+      </p>
+    </div>
+
+    <!-- iOS -->
+    <div id="dl-ios" style="display:none">
+      <p style="margin:12px 0 10px; font-size:.95em; color:#111">iPhone/iPad:</p>
+      
+<button id="btn-share-ios" class="btn-d" style="background:#2563eb">📲 Cómo instalar en iPhone</button>
+      <p style="font-size:.9em; color:#555; margin-top:8px">
+        Ve a los tres puntos de abajo a la derecha <strong>“Seelecciona Compartir”</strong> Agregar inicio.
+      </p>
+    </div>
+
+    <button id="dl-close" class="btn-d" style="background:#6b7280; margin-top:12px">Cerrar</button>
+  </div>
+</div>
+
+  <!-- REDES SOCIALES -->
+  <section id="redes">
+    <h2>Redes sociales</h2>
+    <div class="card">
+      <div class="grid cols-1">
+        <a class="btn btn-yt" href="https://youtube.com/@pipjm9752?si=r3nrs4hxzxk-OVmI" target="_blank" rel="noopener">▶️ YouTube</a>
+        <!-- LIVE (auto) -->
+        <div id="live-wrap" class="live-wrap">
+          <div class="live-head"><span class="live-dot"></span> EN VIVO AHORA</div>
+          <div class="live-player" id="live-player"></div>
+          <a id="live-cta" class="live-cta" href="https://www.youtube.com/@pipjm9752/live" target="_blank" rel="noopener">Ver en YouTube</a>
+        </div>
+        <a class="btn btn-d" href="mailto:pipjm1@gmail.com">✉️ pipjm1@gmail.com</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- UBICACIÓN TEMPLO -->
+  <section id="ubicacion-templo">
+    <h2>Ubicación del templo</h2>
+    <div class="card">
+      <p><strong>Dirección:</strong> <a href="https://maps.app.goo.gl/4R9ZXAmw1ZcnBTL49?g_st=ipc" target="_blank" rel="noopener">Ver en Google Maps</a></p>
+      <a href="https://maps.app.goo.gl/4R9ZXAmw1ZcnBTL49?g_st=ipc" target="_blank" rel="noopener">
+        <img src="https://raw.githubusercontent.com/dla-tech/Media-privada/refs/heads/main/IMG_7782.jpeg" alt="Ubicación del templo" style="width:100%; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,.25)">
+      </a>
+    </div>
+  </section>
+
+  <!-- UBICACIÓN CULTOS -->
+  <section id="ubicacion-cultos">
+    <h2>Ubicación de cultos evangelísticos</h2>
+    <div class="card">
+      <p>Algunos servicios se realizan en ubicaciones distintas:</p>
+      <div class="grid cols-2">
+        <div>
+          <p class="subhead"><span id="lbl-martes">Martes</span></p>
+          <p><strong id="title-martes">Culto evangelístico</strong><br><span id="addr-martes">(TODO: dirección)</span></p>
+          <iframe src="https://www.google.com/maps?q=Maunabo%20Puerto%20Rico&output=embed"
+                  height="260" loading="lazy" title="Culto martes"></iframe>
+        </div>
+        <div>
+          <p class="subhead"><span id="lbl-miercoles">Miércoles</span></p>
+          <p><strong id="title-miercoles">Culto evangelístico</strong><br><span id="addr-miercoles">(TODO: dirección)</span></p>
+          <iframe src="https://www.google.com/maps?q=Maunabo%20Puerto%20Rico&output=embed"
+                  height="260" loading="lazy" title="Culto miércoles"></iframe>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROPOSITO -->
+  <section id="proposito">
+    <h2>Propósito</h2>
+    <div class="card">
+      <p><strong>Nuestro propósito</strong> es: “Llevar el evangelio a toda criatura, dar un mensaje de esperanza, mostrar el amor de Dios al mundo y ayudar al necesitado.”</p>
+      <h3 style="margin-top:16px; font-size:1.1em; color:#0b1421;">Horarios de cultos y actividades</h3>
+      <ul class="list">
+        <li><strong>Lunes:</strong> Culto de oración en el templo — 7:00 p.m.</li>
+        <li><strong>Martes y Miércoles:</strong> Cultos evangelísticos en Maunabo y lugares limítrofes — 7:00 p.m.</li>
+        <li><strong>Jueves:</strong> Culto de la Sociedad de Niños, oración o estudio bíblico — 7:00 p.m.</li>
+        <li><strong>Viernes:</strong> Culto de las Sociedades de Damas, Caballeros y Jóvenes — 7:00 p.m.</li>
+        <li><strong>Sábado:</strong> Altar familiar. (Una vez al mes, ayuno congregacional) — 6:00 a.m.</li>
+        <li><strong>Domingo:</strong>
+          <ul>
+            <li>Oración/Ayuno — desde las 6:00 a.m.</li>
+            <li>Apertura de Escuela Bíblica — 8:45 a.m.</li>
+            <li>Cierre de Escuela Bíblica — 10:45 a.m.</li>
+            <li>Comienzo del culto de adoración — 11:15 a.m.</li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- CONTACTO -->
+  <div class="footer">© 2025 — Iglesia. Todos los derechos reservados.</div>
+</main>
+
+<!-- =========================
+     ICS embebido (SEPTIEMBRE 2025)
+     ========================= -->
+<script id="ics-data" type="text/plain" style="display:none;">
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Iglesia//Calendario Sept 2025//ES
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+
+BEGIN:VEVENT
+UID:20250902T190000-SEC3@iglesia
+DTSTAMP:20250801T120000Z
+DTSTART:20250902T190000
+DTEND:20250902T203000
+SUMMARY:Culto Evangelístico — Sección III, Sector Florida-Calzada
+LOCATION:Sector Florida-Calzada, Maunabo, PR
+END:VEVENT
+
+BEGIN:VEVENT
+UID:20250903T190000-SEC2@iglesia
+DTSTAMP:20250801T120000Z
+DTSTART:20250903T190000
+DTEND:20250903T203000
+SUMMARY:Culto Evangelístico — Sección III, Sector Las Lajas-Matuyas
+LOCATION:Sector Las Lajas-Matuyas, Maunabo, PR
+END:VEVENT
+
+BEGIN:VEVENT
+UID:20250909T190000-CALIMANO@iglesia
+DTSTAMP:20250801T120000Z
+DTSTART:20250909T190000
+DTEND:20250909T203000
+SUMMARY:Culto Evangelístico — Parque Pasivo de Calimano
+LOCATION:Parque Pasivo de Calimano, Maunabo, PR
+END:VEVENT
+
+BEGIN:VEVENT
+UID:20250910T190000-CALIMANO@iglesia
+DTSTAMP:20250801T120000Z
+DTSTART:20250910T190000
+DTEND:20250910T203000
+SUMMARY:Culto Evangelístico — Parque Pasivo de Calimano
+LOCATION:Parque Pasivo de Calimano, Maunabo, PR
+END:VEVENT
+
+BEGIN:VEVENT
+UID:20250916T190000-EGIDA@iglesia
+DTSTAMP:20250801T120000Z
+DTSTART:20250916T190000
+DTEND:20250916T203000
+SUMMARY:Culto Evangelístico — Sección II (al lado de la Égida, Emajagua)
+LOCATION:Égida de Emajagua, Maunabo, PR
+END:VEVENT
+
+BEGIN:VEVENT
+UID:20250917T190000-MALOJA@iglesia
+DTSTAMP:20250801T120000Z
+DTSTART:20250917T190000
+DTEND:20250917T203000
+SUMMARY:Culto Evangelístico — Maloja (Emajagua)
+LOCATION:Maloja, Emajagua, Maunabo, PR
+END:VEVENT
+
+BEGIN:VEVENT
+UID:20250923T190000-SEC3@iglesia
+DTSTAMP:20250801T120000Z
+DTSTART:20250923T190000
+DTEND:20250923T203000
+SUMMARY:Culto Evangelístico — Sección III
+LOCATION:Maunabo, PR
+END:VEVENT
+
+BEGIN:VEVENT
+UID:20250924T190000-SEC2@iglesia
+DTSTAMP:20250801T120000Z
+DTSTART:20250924T190000
+DTEND:20250924T203000
+SUMMARY:Culto Evangelístico — Sección II
+LOCATION:Maunabo, PR
+END:VEVENT
+
+BEGIN:VEVENT
+UID:20250930T190000-CRISTAL@iglesia
+DTSTAMP:20250801T120000Z
+DTSTART:20250930T190000
+DTEND:20250930T203000
+SUMMARY:Culto Evangelístico — Sección I (Cristal)
+LOCATION:Cristal, Maunabo, PR
+END:VEVENT
+
+END:VCALENDAR
+</script>
+
+<!-- ===== Etiquetas dinámicas Mar/Mié — Semana con DOMINGO como inicio ===== -->
+<script>
+(function(){
+  const tz = "America/Puerto_Rico";
+  const now = new Date();
+  const pr = new Date(now.toLocaleString('en-US', { timeZone: tz }));
+
+  // Domingo = inicio
+  const dowSun0 = pr.getDay(); // 0=Dom,1=Lun,...6=Sáb
+  const sunday = new Date(pr); sunday.setHours(0,0,0,0); sunday.setDate(pr.getDate() - dowSun0);
+
+  const tuesday = new Date(sunday);   tuesday.setDate(sunday.getDate() + 2);
+  const wednesday = new Date(sunday); wednesday.setDate(sunday.getDate() + 3);
+
+  const elMartes = document.getElementById('lbl-martes');
+  const elMiercoles = document.getElementById('lbl-miercoles');
+  if (elMartes)    elMartes.textContent    = `Martes ${tuesday.getDate()}`;
+  if (elMiercoles) elMiercoles.textContent = `Miércoles ${wednesday.getDate()}`;
+})();
+</script>
+
+<!-- === Leer ICS embebido y actualizar títulos + direcciones + mapas (semana desde DOMINGO) === -->
+<script>
+  (function(){
+    const TZ = 'America/Puerto_Rico';
+  
+    // Utils
+    const toPR = d => new Date(d.toLocaleString('en-US',{timeZone:TZ}));
+    const startOfDay = d => (d=new Date(d), d.setHours(0,0,0,0), d);
+    const addDays = (d,n)=> (d=new Date(d), d.setDate(d.getDate()+n), d);
+    const sameDayPR = (a,b)=>{a=toPR(a);b=toPR(b);
+      return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate()};
+    const toISO = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  
+    // Semana con DOMINGO como inicio
+    const now = new Date();
+    const prNow = toPR(now);
+    const dowSun0 = prNow.getDay();
+    const sunday = startOfDay(addDays(prNow, -dowSun0));
+    const tuesday = addDays(sunday, 2);
+    const wednesday = addDays(sunday, 3);
+  
+    // Pins exactos por fecha
+    const PIN_LINKS = {
+      '2025-09-02': 'https://maps.app.goo.gl/PJ4bF5y8kzK7VtC96?g_st=ipc',
+      '2025-09-03': 'https://maps.app.goo.gl/ywk9uNajhMkmKq2Y7?g_st=ipc',
+      '2025-09-09': 'https://maps.app.goo.gl/Fuv4KNYBiiqfdAEh8?g_st=ipc',
+      '2025-09-10': 'https://maps.app.goo.gl/Fuv4KNYBiiqfdAEh8?g_st=ipc',
+      '2025-09-16': 'https://maps.app.goo.gl/4L1rut6fFb5x2pKg8?g_st=ipc',
+      '2025-09-17': 'https://maps.app.goo.gl/ffA2tEJkTcRMBbib8?g_st=ipc',
+      '2025-09-23': 'https://maps.app.goo.gl/FypEuJLpCWbcjvaGA?g_st=ipc',
+      '2025-09-30': 'https://maps.app.goo.gl/23QLJ7UV3DJJK4uW9?g_st=ipc'
+    };
+    const tueKey = toISO(tuesday);
+    const wedKey = toISO(wednesday);
+    const tuePin = PIN_LINKS[tueKey] || null;
+    const wedPin = PIN_LINKS[wedKey] || null;
+  
+    // Parser ICS
+    const unfold = txt => txt.replace(/(?:\r\n|\n)[ \t]/g,'');
+    const getLineVal = (block, prop) => {
+      const m = block.match(new RegExp('^'+prop+'(?:;[^:\\n]*)?:(.*)$','mi'));
+      return m ? m[1].trim() : null;
+    };
+    function parseDTSTART(block){
+      const m = block.match(/^DTSTART([^:\n]*)?:([^\n]+)$/mi);
+      if (!m) return null;
+      const params = (m[1]||'').toUpperCase();
+      const val = m[2].trim();
+      const dOnly = val.match(/^(\d{4})(\d{2})(\d{2})$/);
+      if (/VALUE=DATE/.test(params) && dOnly){
+        const [_,Y,M,D] = dOnly; return new Date(Date.UTC(+Y,+M-1,+D,4,0,0));
+      }
+      const dt = val.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z)?$/);
+      if (dt){
+        const [_,Y,M,D,hh,mm,ss,Z] = dt;
+        if (/TZID=AMERICA\/PUERTO_RICO/.test(params))
+          return new Date(Date.UTC(+Y,+M-1,+D,+hh+4,+mm,+ss));
+        if (Z) return new Date(Date.UTC(+Y,+M-1,+D,+hh,+mm,+ss));
+        return new Date(Date.UTC(+Y,+M-1,+D,+hh+4,+mm,+ss));
+      }
+      if (dOnly){
+        const [_,Y,M,D] = dOnly; return new Date(Date.UTC(+Y,+M-1,+D,4,0,0));
+      }
+      return null;
+    }
+  
+    // Leer ICS
+    const icsEl = document.getElementById('ics-data');
+    if (!icsEl) return;
+    const raw = icsEl.textContent.trim();
+    if (!raw) return;
+  
+    const t = unfold(raw);
+    const blocks = t.split(/BEGIN:VEVENT/).slice(1).map(b=>'BEGIN:VEVENT'+b.split('END:VEVENT')[0]);
+  
+    let tueEv=null, wedEv=null;
+    for (const ev of blocks){
+      const dt = parseDTSTART(ev); if (!dt) continue;
+      if (!tueEv && sameDayPR(dt,tuesday))   tueEv = {summary:getLineVal(ev,'SUMMARY'), location:getLineVal(ev,'LOCATION')};
+      if (!wedEv && sameDayPR(dt,wednesday)) wedEv = {summary:getLineVal(ev,'SUMMARY'), location:getLineVal(ev,'LOCATION')};
+      if (tueEv && wedEv) break;
+    }
+  
+    // Actualizar textos
+    if (tueEv){
+      const tTitle = document.getElementById('title-martes');
+      const tAddr  = document.getElementById('addr-martes');
+      if (tTitle) tTitle.textContent = tueEv.summary || '';
+      if (tAddr)  tAddr.textContent  = tueEv.location || '';
+    }
+    if (wedEv){
+      const wTitle = document.getElementById('title-miercoles');
+      const wAddr  = document.getElementById('addr-miercoles');
+      if (wTitle) wTitle.textContent = wedEv.summary || '';
+      if (wAddr)  wAddr.textContent  = wedEv.location || '';
+    }
+  
+    // Actualizar mapas
+    function setMap(iframeEl, locationText, pinUrl) {
+      if (!iframeEl) return;
+      const query = locationText ? locationText + ", Puerto Rico" : "Maunabo, Puerto Rico";
+      iframeEl.src   = 'https://www.google.com/maps?output=embed&q=' + encodeURIComponent(query);
+      iframeEl.title = 'Mapa: ' + query;
+      let overlay = iframeEl.parentElement.querySelector('.map-overlay');
+      if (!overlay) {
+        overlay = document.createElement('a');
+        overlay.className = 'map-overlay';
+        overlay.target = '_blank';
+        overlay.rel = 'noopener';
+        overlay.style.cssText = 'position:absolute;inset:0;z-index:5;';
+        const holder = iframeEl.parentElement;
+        if (getComputedStyle(holder).position === 'static') holder.style.position = 'relative';
+        holder.appendChild(overlay);
+      }
+      overlay.href = pinUrl || ('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(query));
+    }
+  
+    setMap(document.querySelector('#ubicacion-cultos .grid.cols-2 > div:nth-child(1) iframe'),
+           tueEv?.location, tuePin);
+    setMap(document.querySelector('#ubicacion-cultos .grid.cols-2 > div:nth-child(2) iframe'),
+           wedEv?.location, wedPin);
+  })();
+  </script>
+<!-- ===== Botones de suscripción (iCloud/Google) ===== -->
+<script>
+document.getElementById("btn-ios").addEventListener("click", function(event) {
+  event.preventDefault();
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const url = "webcal://p158-caldav.icloud.com/published/2/MTYyMzg4NDUwMjAxNjIzOFc_RCw-iCOSeM_LMqkWZcQMuX9sTzZF-PyrU9d06Oy4V0VhxUSZVqCmqzUsygyCHgAllfl2DFW34WcFi8EvPD8";
+
+  if (window.self !== window.top && isIOS) {
+    window.top.location.href = url;
+  } else {
+    window.location.href = url;
+  }
+  setTimeout(function() {
+    alert("Si no se abrió el calendario, copia y pega este enlace en Safari:\n" + url);
+  }, 2500);
+});
+
+const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+const isAndroid = /Android/i.test(navigator.userAgent);
+
+// --- Botón: mostrar opciones (Web/App) ---
+const CAL_ID  = "72086005a3ac9a324642e6977fb8f296d531c3520b03c6cf342495ed215e0186@group.calendar.google.com";
+const WEB_URL = "https://calendar.google.com/calendar/u/0/r?cid=" + encodeURIComponent(CAL_ID);
+// Dynamic Link que abre la app si está instalada y, si no, va a la tienda
+
+
+const choice    = document.getElementById("gcal-choice");
+const openWeb   = document.getElementById("gcal-open-web");
+const openApp   = document.getElementById("gcal-open-app");
+const cancelBtn = document.getElementById("gcal-cancel");
+
+function hideChoice(){ if (choice) choice.style.display = "none"; }
+function showChoice(){ if (choice) choice.style.display = "flex"; }
+
+document.getElementById("btn-gcal").addEventListener("click", function (event) {
+  event.preventDefault();
+  showChoice();
+});
+
+// Abrir en la web: URL que pide suscribirse al calendario
+if (openWeb){
+  openWeb.addEventListener("click", function(e){
+    e.preventDefault();
+    hideChoice();
+    // Abrimos la VERSIÓN WEB en nueva pestaña para minimizar cualquier deep link
+    try {
+      const w = window.open(WEB_URL, "_blank", "noopener");
+      if (!w) {
+        // Si el navegador bloquea popups, navega en la misma pestaña
+        window.location.href = WEB_URL;
+      }
+    } catch(_) {
+      window.location.href = WEB_URL;
+    }
+  });
+}
+
+// Abrir en la app: usa Dynamic Link para todos los casos
+if (openApp){
+  openApp.addEventListener("click", function(e){
+    e.preventDefault();
+    hideChoice();
+
+    // Navega a una URL (considerando si estamos dentro de un iframe)
+    const go = (url) => {
+      if (window.self !== window.top) { window.top.location.href = url; }
+      else { window.location.href = url; }
+    };
+
+    if (isAndroid) {
+      // ANDROID: intenta abrir la app con intent + cid.
+      // Si no abre, cae primero a Web Add; último recurso: Play Store.
+      const PLAY = "https://play.google.com/store/apps/details?id=com.google.android.calendar";
+      const intentUrl =
+        'intent://calendar.google.com/calendar/r?cid=' + encodeURIComponent(CAL_ID) +
+        '#Intent;scheme=https;package=com.google.android.calendar;' +
+        'S.browser_fallback_url=' + encodeURIComponent(WEB_URL) + ';end';
+
+      let finished = false;
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(toWeb);
+        clearTimeout(toStore);
+      };
+
+      // Dispara intent
+      go(intentUrl);
+
+      // Si realmente se abre la app, la página pierde foco/visibilidad
+      const onHidden = () => finish();
+      window.addEventListener('pagehide', onHidden, { once:true });
+      document.addEventListener('visibilitychange', () => { if (document.hidden) finish(); }, { once:true });
+      window.addEventListener('blur', onHidden, { once:true });
+
+      // Fallback 1: si seguimos visibles, usar Web (ahí sí pregunta para agregar)
+      const toWeb = setTimeout(() => {
+        if (!finished && !document.hidden) go(WEB_URL);
+      }, 2200);
+
+      // Fallback 2 (último recurso): Play Store si tampoco abrió ni fue a Web
+      const toStore = setTimeout(() => {
+        if (!finished && !document.hidden) go(PLAY);
+      }, 4500);
+
+      return;
+    } else if (isIOS) {
+      // iOS: intenta abrir la app con el CID directamente. Fallback: App Store.
+      const appUrl1 = "comgooglecalendar://?cid=" + encodeURIComponent(CAL_ID);
+      const appUrl2 = "googlecalendar://?cid=" + encodeURIComponent(CAL_ID);
+      const appStore = "https://apps.apple.com/app/google-calendar/id909319292";
+
+      let left = false;
+      const cleanup = () => {
+        document.removeEventListener("visibilitychange", onVis, true);
+        window.removeEventListener("pagehide", onHide, true);
+        window.removeEventListener("blur", onBlur, true);
+      };
+      const onVis  = () => { if (document.hidden) { left = true; cleanup(); } };
+      const onHide = () => { left = true; cleanup(); };
+      const onBlur = () => { left = true; cleanup(); };
+
+      document.addEventListener("visibilitychange", onVis, true);
+      window.addEventListener("pagehide", onHide, true);
+      window.addEventListener("blur", onBlur, true);
+
+      go(appUrl1);
+      setTimeout(() => { if (!left) go(appUrl2); }, 600);
+      setTimeout(() => { if (!left) go(appStore); }, 1800);
+
+    } else {
+      // Otros (desktop): abrir versión web como último recurso
+      go(WEB_URL);
+    }
+  });
+}
+
+// Botón de descarga Google Calendar
+const btnDownload = document.getElementById("btn-download");
+if (btnDownload){
+  btnDownload.addEventListener("click", function(e){
+    e.preventDefault();
+    const PLAY = "https://play.google.com/store/apps/details?id=com.google.android.calendar";
+    const APPSTORE = "https://apps.apple.com/app/google-calendar/id909319292";
+    if (isAndroid) {
+      window.location.href = PLAY;
+    } else if (isIOS) {
+      window.location.href = APPSTORE;
+    } else {
+      window.location.href = "https://calendar.google.com/"; // fallback
+    }
+  });
+}
+
+// Cerrar modal
+if (cancelBtn){
+  cancelBtn.addEventListener("click", function(){
+    hideChoice();
+  });
+}
+if (choice){
+  choice.addEventListener("click", function(e){
+    if (e.target === choice) hideChoice();
+  });
+}
+</script>
+  <script>
+    const openBtn = document.getElementById('open-contact-options');
+    const modal   = document.getElementById('contact-modal');
+    const closeBtn= document.getElementById('close-modal');
+
+    if(openBtn && modal){
+      openBtn.addEventListener('click', e=>{
+        e.preventDefault();
+        modal.style.display = 'flex';
+      });
+    }
+    if(closeBtn){
+      closeBtn.addEventListener('click', ()=> modal.style.display='none');
+    }
+    window.addEventListener('click', e=>{
+      if(e.target === modal) modal.style.display='none';
+    });
+  </script>
+  <script>
+  // Oculta el header al bajar y lo muestra al subir (sin tocar el layout)
+  (function(){
+    const header = document.querySelector('header');
+    if (!header) return;
+
+    let lastY = window.scrollY || 0;
+    let downAccum = 0, upAccum = 0;
+    const THRESH = 12;      // píxeles de histéresis para evitar parpadeos
+    const MIN_TOP = 24;     // no ocultar si estamos pegados al tope
+
+    window.addEventListener('scroll', () => {
+      const y = window.scrollY || 0;
+      const delta = y - lastY;
+
+      if (delta > 0){
+        // Bajando
+        downAccum += delta; upAccum = 0;
+        if (y > MIN_TOP && downAccum > THRESH){
+          header.classList.add('hide');
+        }
+      } else if (delta < 0){
+        // Subiendo
+        upAccum += -delta; downAccum = 0;
+        if (upAccum > THRESH){
+          header.classList.remove('hide');
+        }
+        if (y <= 0){
+          header.classList.remove('hide');
+        }
+      }
+
+      lastY = y;
+    }, { passive: true });
+  })();
+  </script>
+  <script>
+    (function(){
+      // Plataforma y modo app instalada
+      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const isAndroid = /Android/i.test(navigator.userAgent);
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    
+      // Botón del menú
+      const navBtn = document.getElementById('nav-descarga');
+      if (isStandalone && navBtn) { navBtn.style.display = 'none'; } // oculto dentro de la app
+      if (!navBtn) return;
+    
+      // Modal y secciones
+      const modal = document.getElementById('dl-modal');
+      const secAndroid = document.getElementById('dl-android');
+      const secIOS = document.getElementById('dl-ios');
+      const closeBtn = document.getElementById('dl-close');
+    
+      function openModal(){
+        if (isStandalone) return; // no mostrar en la app
+        if (!modal) return;
+        if (isAndroid){
+          secAndroid && (secAndroid.style.display = 'block');
+          secIOS && (secIOS.style.display = 'none');
+        } else if (isIOS){
+          secIOS && (secIOS.style.display = 'block');
+          secAndroid && (secAndroid.style.display = 'none');
+        } else {
+          // Desktop: muestra ambos como guía
+          secAndroid && (secAndroid.style.display = 'block');
+          secIOS && (secIOS.style.display = 'block');
+        }
+        modal.style.display = 'flex';
+      }
+      function closeModal(){ modal && (modal.style.display = 'none'); }
+    
+      navBtn.addEventListener('click', (e)=>{ e.preventDefault(); openModal(); });
+      closeBtn && closeBtn.addEventListener('click', closeModal);
+      modal && modal.addEventListener('click', (e)=>{ if (e.target === modal) closeModal(); });
+    
+      // ANDROID: beforeinstallprompt para PWA
+      let deferredPrompt = null;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e; // guardamos el evento para lanzarlo bajo clic
+      });
+    
+      const btnInstallAndroid = document.getElementById('btn-install-android');
+      const androidFallback = document.getElementById('android-fallback');
+      if (btnInstallAndroid){
+        btnInstallAndroid.addEventListener('click', async () => {
+          if (deferredPrompt) {
+            deferredPrompt.prompt();
+            try {
+              const { outcome } = await deferredPrompt.userChoice;
+              deferredPrompt = null;
+              if (outcome === 'accepted') {
+                closeModal();
+              } else {
+                androidFallback && (androidFallback.style.display = 'block');
+              }
+            } catch(_){
+              androidFallback && (androidFallback.style.display = 'block');
+            }
+          } else {
+            androidFallback && (androidFallback.style.display = 'block');
+          }
+        });
+      }
+    
+      // iOS: abrir la hoja de compartir (no se puede abrir “Añadir a pantalla de inicio” directamente)
+      const btnShareIOS = document.getElementById('btn-share-ios');
+if (btnShareIOS){
+  btnShareIOS.addEventListener('click', () => {
+    const ua = navigator.userAgent || '';
+    const isSafari = /Safari/i.test(ua) && !/CriOS|FxiOS|OPiOS|EdgiOS/i.test(ua);
+    if (!isSafari) {
+      alert('Cómo instalar en iPhone (Safari):\n\n1) Pulsa  “los tre puntos” (abajo derecha o arriba derecha).\n2) Elige “compartir”.\n3) Desliza y elige “Agregar a inicio”.\n4) Pulsa "Agregar"');
+      return;
+    }
+    alert('Cómo instalar en iPhone (Safari):\n\n1) Pulsa  “los tre puntos” (abajo derecha o arriba derecha).\n2) Elige “compartir”.\n3) Desliza y elige “Agregar a inicio”.\n4) Pulsa "Agregar"');
+  });
+}
+    })();
+    </script>
+<!-- Removed two stray closing script tags below -->
+<script>
+(function(){
+  // Duraciones
+  const MIN_VISIBLE = 1500;   // tiempo mínimo visible ANTES de empezar el fade
+  const FADE_TIME   = 2000;   // debe coincidir con el CSS (2000ms)
+  const HARD_FALLBACK = MIN_VISIBLE + FADE_TIME + 1500; // por si algo falla
+
+  const start = performance.now();
+
+  const done = () => {
+    document.documentElement.classList.remove('loading');
+    const el = document.getElementById('loader');
+    if (!el) return;
+    el.classList.add('hide');
+    // Quita el estilo que oculta el contenido tras el fade
+    const style = document.getElementById('preload-style');
+    if (style) style.remove();
+    // tras el fade, elimina el nodo
+    setTimeout(() => { try { el.remove(); } catch(_){} }, FADE_TIME + 100);
+  };
+
+  // Cuando todo cargue, espera lo necesario para cumplir el mínimo visible
+  window.addEventListener('load', () => {
+    const elapsed = performance.now() - start;
+    const wait = Math.max(0, MIN_VISIBLE - elapsed);
+    setTimeout(done, wait);
+  }, { once: true });
+
+  // Fallback duro por si el 'load' nunca llega
+  setTimeout(done, HARD_FALLBACK);
+})();
+</script>
+
+<!-- SDK Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script>
+  // Configuración real de tu proyecto
+  const firebaseConfig = {
+    apiKey: "AIzaSyA0Yj_GIZqNzMaH5ChzWsSz_spORbHKMiY",
+    authDomain: "miappiglesia.firebaseapp.com",
+    projectId: "miappiglesia",
+    storageBucket: "miappiglesia.firebasestorage.app",
+    messagingSenderId: "624809525779",
+    appId: "1:624809525779:web:2608aa1d23a84e466a35e6",
+    measurementId: "G-8LLBP4ZB45"
+  };
+
+  // Inicializar Firebase
+  firebase.initializeApp(firebaseConfig);
+
+  // Inicializar Cloud Messaging
+  const messaging = firebase.messaging();
+
+  // Inicializar Firestore para guardar tokens desde el cliente
+  const db = firebase.firestore();
+
+  // Registrar el Service Worker de FCM
+  let fcmSW = null;
+  navigator.serviceWorker.register('./firebase-messaging-sw.js')
+    .then(reg => {
+      fcmSW = reg;
+      console.log("✅ SW FCM registrado:", reg);
+    })
+    .catch(err => console.error("❌ Error registrando SW FCM:", err));
+
+  // Pedir permiso y obtener token
+  async function activarNotificaciones(){
+    try {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') {
+        alert("Debes permitir notificaciones para continuar");
+        return;
+      }
+
+      // ⚠️ Reemplaza con tu clave pública VAPID de Firebase Console → Cloud Messaging
+      const vapidKey = "W4B_hmG-56hViRT-hOG5hOxYyXKi-CE0PInfb35PKG0";
+
+      const token = await messaging.getToken({
+        vapidKey,
+        serviceWorkerRegistration: fcmSW
+      });
+
+      if (token) {
+        console.log("🎯 TOKEN FCM:", token);
+        alert("Token obtenido. Revisa la consola del navegador");
+
+        // 👉 Guardar token directamente en Firestore (sin Vercel)
+        async function saveTokenToFirestore(tok){
+          try {
+            await db.collection('fcm_tokens').doc(tok).set({
+              token: tok,
+              topic: 'org_all',
+              ua: navigator.userAgent || '',
+              ts: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+            console.log('✅ Token guardado en Firestore');
+            return true;
+          } catch (e) {
+            console.warn('❌ Error guardando token en Firestore:', e);
+            return false;
+          }
+        }
+
+        const ok = await saveTokenToFirestore(token);
+        if (!ok) {
+          alert('No se pudo guardar el token. Revisa la consola y las reglas de Firestore.');
+        }
+      } else {
+        alert("No se pudo obtener el token de notificación");
+      }
+
+    } catch (e) {
+      console.error("Error activando notificaciones:", e);
+    }
+  }
+
+  // Escuchar notificaciones cuando la PWA está abierta
+  messaging.onMessage(payload => {
+    console.log("📩 Notificación en foreground:", payload);
+    new Notification(payload.notification.title, {
+  body: payload.notification.body,
+  icon: "icons/icon-192.png" // ahora dentro de /icons
+});
+  });
+</script>
+
+<script>
+  // Botón del menú (campana) para activar notificaciones
+  const navNotify = document.getElementById('nav-notify');
+  if (navNotify) {
+    navNotify.addEventListener('click', function(e){
+      e.preventDefault();
+      (async () => {
+        navNotify.textContent = '⏳';
+        try {
+          await activarNotificaciones();
+          navNotify.textContent = '✅';
+          setTimeout(() => { navNotify.textContent = '🔔'; }, 2000);
+        } catch (_) {
+          navNotify.textContent = '🔔';
+        }
+      })();
+    });
+  }
+</script>
+</body>
+</html>
+
