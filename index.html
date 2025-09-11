@@ -1035,9 +1035,19 @@ if (btnShareIOS){
   // Inicializar Firestore para guardar tokens desde el cliente
   const db = firebase.firestore();
 
-  // Registrar el Service Worker de FCM
+  // === Debug helper (visible en pantalla, útil en iOS) ===
+  (function(){
+    const box = document.createElement('div');
+    box.id = 'debug-box';
+    box.style.cssText = 'position:fixed;left:8px;bottom:8px;max-width:92vw;background:rgba(0,0,0,.75);color:#0f0;font:12px/1.35 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;padding:8px 10px;border-radius:8px;z-index:999999;white-space:pre-wrap;word-break:break-word;';
+    box.textContent = '🛠️ Debug activo';
+    document.body.appendChild(box);
+    window.__dbg = function(msg){ try{ box.textContent += "\n" + msg; } catch(_){} };
+  })();
+
+  // Registrar el Service Worker de FCM (ruta ABSOLUTA)
   let fcmSW = null;
-  navigator.serviceWorker.register('./firebase-messaging-sw.js')
+  navigator.serviceWorker.register('/firebase-messaging-sw.js')
     .then(reg => {
       fcmSW = reg;
       console.log("✅ SW FCM registrado:", reg);
@@ -1047,6 +1057,10 @@ if (btnShareIOS){
   // Pedir permiso y obtener token
   async function activarNotificaciones(){
     try {
+      __dbg('origin=' + location.origin);
+      __dbg('isSecureContext=' + (window.isSecureContext ? 'yes' : 'no'));
+      __dbg('Notification.permission(before)=' + Notification.permission);
+      __dbg('UA=' + (navigator.userAgent||''));
       const perm = await Notification.requestPermission();
       if (perm !== 'granted') {
         alert("Debes permitir notificaciones para continuar");
@@ -1056,13 +1070,31 @@ if (btnShareIOS){
       // ⚠️ Reemplaza con tu clave pública VAPID de Firebase Console → Cloud Messaging
       const vapidKey = "W4B_hmG-56hViRT-hOG5hOxYyXKi-CE0PInfb35PKG0";
 
-      const token = await messaging.getToken({
-        vapidKey,
-        serviceWorkerRegistration: fcmSW
-      });
+      if (!fcmSW) {
+        __dbg('Esperando serviceWorker.ready...');
+        try {
+          const readyReg = await navigator.serviceWorker.ready;
+          fcmSW = readyReg;
+          __dbg('ready() OK, scope=' + (readyReg.scope || 'n/a'));
+        } catch(e) {
+          __dbg('ready() FAIL: ' + (e && e.message ? e.message : e));
+        }
+      }
+
+      let token = null;
+      try {
+        token = await messaging.getToken({
+          vapidKey,
+          serviceWorkerRegistration: fcmSW
+        });
+      } catch (e) {
+        __dbg('getToken() ERROR: ' + (e && e.message ? e.message : e));
+        throw e;
+      }
 
       if (token) {
         console.log("🎯 TOKEN FCM:", token);
+        __dbg('TOKEN=' + token);
         alert("Token obtenido. Revisa la consola del navegador");
 
         // 👉 Guardar token directamente en Firestore (sin Vercel)
@@ -1078,6 +1110,7 @@ if (btnShareIOS){
             return true;
           } catch (e) {
             console.warn('❌ Error guardando token en Firestore:', e);
+            __dbg('Firestore write ERROR: ' + (e && e.message ? e.message : e));
             return false;
           }
         }
@@ -1126,4 +1159,3 @@ if (btnShareIOS){
 </script>
 </body>
 </html>
-
