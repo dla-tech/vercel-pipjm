@@ -1044,15 +1044,9 @@ if (btnShareIOS){
   // Inicializar Firestore para guardar tokens desde el cliente
   const db = firebase.firestore();
 
-  // === Debug helper (visible en pantalla, útil en iOS) ===
-  (function(){
-    const box = document.createElement('div');
-    box.id = 'debug-box';
-    box.style.cssText = 'position:fixed;left:8px;bottom:8px;max-width:92vw;background:rgba(0,0,0,.75);color:#0f0;font:12px/1.35 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;padding:8px 10px;border-radius:8px;z-index:999999;white-space:pre-wrap;word-break:break-word;';
-    box.textContent = '🛠️ Debug activo';
-    document.body.appendChild(box);
-    window.__dbg = function(msg){ try{ box.textContent += "\n" + msg; } catch(_){} };
-  })();
+  // Debug silencioso (sin UI en pantalla)
+  const DEBUG = false;
+  window.__dbg = DEBUG ? (msg => console.log('[DBG]', msg)) : function(){};
 
   // Registrar el Service Worker de FCM (ruta ABSOLUTA)
   let fcmSW = null;
@@ -1104,7 +1098,6 @@ if (btnShareIOS){
       if (token) {
         console.log("🎯 TOKEN FCM:", token);
         __dbg('TOKEN=' + token);
-        alert("Token obtenido. Revisa la consola del navegador");
 
         // 👉 Guardar token directamente en Firestore (sin Vercel)
         async function saveTokenToFirestore(tok){
@@ -1166,3 +1159,4 @@ if (btnShareIOS){
 </script>
 </body>
 </html>
+
