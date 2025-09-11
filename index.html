@@ -6,7 +6,7 @@
 <title>Programaciones mensuales</title>
 <style>
   :root{
-    --bg:url("https://raw.githubusercontent.com/dla-tech/Media-privada/refs/heads/main/IMG_7782.jpeg");
+    --bg:url("/images/bg-hero.jpeg");
     --card: rgba(255,255,255,.86);
     --ink: #0b1421;
     --accent: #2563eb;
@@ -215,7 +215,10 @@
 <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
 <link rel="apple-touch-icon-precomposed" sizes="180x180" href="icons/icon-180.png">
 <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png">
+</style>
 <meta name="theme-color" content="#0b1421">
+<link rel="preload" as="image" href="/images/bg-hero.jpeg">
+<link rel="preload" as="image" href="/images/promo.jpeg">
 </head>
 <body>
 
@@ -260,13 +263,14 @@
 <script>
   (function(){
     // Pega aquí el link de la imagen cuando tengas promoción
-    const promoLink = "https://raw.githubusercontent.com/dla-tech/Media-privada/refs/heads/main/7f6d0715-e757-4a11-a12a-771690367985.jpeg";
+    const promoLink = "/images/promo.jpeg"; // archivo local para asegurar carga en PWA
 
     const banner = document.getElementById("promo-banner");
     const img = document.getElementById("promo-img");
 
     if (promoLink && banner && img){
       img.src = promoLink;
+      img.onerror = () => { banner.style.display = "none"; };
       banner.style.display = "block";
 
       // Descarga al tocar/clicar la imagen
@@ -275,16 +279,21 @@
           const res = await fetch(promoLink, { mode: "cors", cache: "no-store" });
           if (!res.ok) throw new Error("HTTP " + res.status);
           const blob = await res.blob();
-          const url = URL.createObjectURL(blob);
 
-          // Nombre de archivo amigable
-          const nameFromUrl = (promoLink.split("/").pop() || "promocion")
-                                .split("?")[0]
-                                .replace(/\.[^/.]+$/, "") + ".jpg";
+          // ➕ Nombre con FECHA de descarga (YYYY-MM-DD_HHMM)
+          const base = (promoLink.split("/").pop() || "promocion").split("?")[0].replace(/\.[^/.]+$/, "");
+          const d = new Date();
+          const pad = n => String(n).padStart(2, '0');
+          const stamp = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
+          const fileName = `${base}_${stamp}.jpg`;
+
+          // Usar File() para fijar lastModified al momento de descarga
+          const file = new File([blob], fileName, { type: blob.type || 'image/jpeg', lastModified: Date.now() });
+          const url = URL.createObjectURL(file);
 
           const a = document.createElement("a");
           a.href = url;
-          a.download = nameFromUrl; // fuerza descarga donde sea posible
+          a.download = fileName; // algunos navegadores iOS pueden ignorarlo
           document.body.appendChild(a);
           a.click();
           setTimeout(() => {
@@ -292,7 +301,7 @@
             a.remove();
           }, 2000);
         } catch (e) {
-          // Fallback: abrir en nueva pestaña (iOS Safari normalmente permite guardar desde ahí)
+          // Fallback: abrir en nueva pestaña (iOS suele permitir guardar desde ahí)
           window.open(promoLink, "_blank", "noopener");
         }
       });
@@ -1068,7 +1077,7 @@ if (btnShareIOS){
       }
 
       // ⚠️ Reemplaza con tu clave pública VAPID de Firebase Console → Cloud Messaging
-      const vapidKey = "W4B_hmG-56hViRT-hOG5hOxYyXKi-CE0PInfb35PKG0";
+      const vapidKey = "BKPo4xItR6FKQpmI4JKnUgfadCydqYeAn68cfdlpN56EnlnSCzUDcQhQQ27CjYA3BFYQPooSV5CbZmxjJC6brDU";
 
       if (!fcmSW) {
         __dbg('Esperando serviceWorker.ready...');
