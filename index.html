@@ -1126,7 +1126,8 @@ if (btnShareIOS){
 
         const ok = await saveTokenToFirestore(token);
         if (!ok) {
-          alert('No se pudo guardar el token. Revisa la consola y las reglas de Firestore.');
+          console.warn('No se pudo guardar el token. Revisa reglas de Firestore.');
+          __dbg('Firestore write failed.');
         }
       } else {
         alert("No se pudo obtener el token de notificación");
@@ -1154,13 +1155,10 @@ if (btnShareIOS){
     navNotify.addEventListener('click', function(e){
       e.preventDefault();
       (async () => {
-        navNotify.textContent = '⏳';
         try {
           await activarNotificaciones();
-          navNotify.textContent = '✅';
-          setTimeout(() => { navNotify.textContent = '🔔'; }, 2000);
         } catch (_) {
-          navNotify.textContent = '🔔';
+          // keep UI unchanged
         }
       })();
     });
