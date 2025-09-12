@@ -1,151 +1,138 @@
-import { google } from "googleapis";
-import admin from "firebase-admin";
+// /api/push-calendar.js
+import { google } from 'googleapis';
+import admin from 'firebase-admin';
 
-// --- Firebase Admin ---
-const svcEnv = process.env.FIREBASE_SERVICE_ACCOUNT;
-if (!admin.apps.length && svcEnv) {
-  admin.initializeApp({ credential: admin.credential.cert(JSON.parse(svcEnv)) });
-}
-const db = () => admin.firestore();
-
-// Helpers
-const ok   = (res, data) => res.status(200).json({ ok: true, ...data });
-const fail = (res, err, extra={}) => res.status(500).json({ ok: false, error: String(err), ...extra });
-
-// Divide un array en trozos de n elementos (FCM máx. 500 tokens por envío)
-function chunk(arr, size = 500) {
-  const out = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
+// ---------- CORS sencillo ----------
+function setCORS(req, res) {
+  const o = req.headers.origin || '*';
+  res.setHeader('Access-Control-Allow-Origin', o);
+  res.setHeader('Vary', 'Origin');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') { res.status(204).end(); return true; }
+  return false;
 }
 
-// Fecha/hora local Puerto Rico
-const fmtPR = new Intl.DateTimeFormat("es-PR", { dateStyle: "short", timeStyle: "short", hour12: true });
-const whenStr = (ev) => {
-  const s = ev.start?.dateTime || ev.start?.date;
-  if (!s) return "";
-  const d = ev.start?.dateTime ? new Date(s) : new Date(s + "T00:00:00-04:00");
-  return fmtPR.format(d);
+// ---------- Firebase Admin (singleton) ----------
+function initAdmin() {
+  if (admin.apps.length) return admin.app();
+  const sa = process.env.FIREBASE_SERVICE_ACCOUNT;
+  if (!sa) throw new Error('Falta FIREBASE_SERVICE_ACCOUNT (JSON)');
+
+  const conf = JSON.parse(sa);
+  return admin.initializeApp({
+    credential: admin.credential.cert(conf)
+  });
+}
+
+// ---------- Helpers ----------
+const nowIso = () => new Date().toISOString();
+const addDays = (d) => {
+  const x = new Date(); x.setDate(x.getDate() + d); return x.toISOString();
 };
 
+// ---------- Handler ----------
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  if (req.method === "OPTIONS") return res.status(204).end();
-
-  const CAL_ID = process.env.GCAL_CALENDAR_ID;
-  const EMAIL  = process.env.GOOGLE_CLIENT_EMAIL;
-  const KEY    = (process.env.GOOGLE_PRIVATE_KEY || "").replace(/\\n/g, "\n");
-
-  if (!CAL_ID || !EMAIL || !KEY) {
-    return fail(res, "Faltan GCAL_CALENDAR_ID / GOOGLE_CLIENT_EMAIL / GOOGLE_PRIVATE_KEY");
-  }
-  if (!svcEnv) {
-    return fail(res, "Falta FIREBASE_SERVICE_ACCOUNT (JSON del proyecto Firebase)");
-  }
-
   try {
-    // --- Auth Google Calendar ---
-    const jwt = new google.auth.JWT(EMAIL, undefined, KEY, ["https://www.googleapis.com/auth/calendar.readonly"]);
-    const calendar = google.calendar({ version: "v3", auth: jwt });
+    if (setCORS(req, res)) return;
 
-    // --- Última sync ---
-    const metaRef  = db().collection("meta").doc("calendar");
+    // Env vars requeridas
+    const CAL_ID = process.env.GCAL_CALENDAR_ID;
+    const API_KEY = process.env.GCAL_API_KEY;
+    if (!CAL_ID || !API_KEY) {
+      return res.status(500).json({ ok:false, error:'Faltan GCAL_CALENDAR_ID o GCAL_API_KEY' });
+    }
+
+    // Firebase
+    const app = initAdmin();
+    const db = admin.firestore(app);
+
+    // Leer last_sync_ts (o forzar)
+    const force = String(req.query.force || '') === '1';
+    const metaRef = db.collection('meta').doc('calendar');
     const metaSnap = await metaRef.get();
-    const lastSync = metaSnap.exists ? metaSnap.data().last_sync_ts : null;
+    let lastSync = null;
+    if (!force && metaSnap.exists) lastSync = metaSnap.get('last_sync_ts');
 
-    // --- Traer eventos próximos (hoy → +30 días) ---
-    const now  = new Date();
-    const in30 = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-    const { data } = await calendar.events.list({
+    // Ventana de eventos (hoy-1d a hoy+30d)
+    const timeMin = addDays(-1);
+    const timeMax = addDays(30);
+
+    // Llamada a Google Calendar con API KEY (cal público)
+    const calendar = google.calendar({ version: 'v3', auth: API_KEY });
+    const listParams = {
       calendarId: CAL_ID,
-      timeMin: now.toISOString(),
-      timeMax: in30.toISOString(),
+      timeMin,
+      timeMax,
       singleEvents: true,
-      orderBy: "startTime",
-      showDeleted: false,
-      maxResults: 100,
-    });
+      orderBy: 'updated'
+    };
+    if (lastSync && !force) listParams.updatedMin = new Date(lastSync).toISOString();
+
+    const { data } = await calendar.events.list(listParams);
     const items = data.items || [];
 
-    // --- Filtrar por cambios desde la última sync ---
-    let changed = items;
-    if (lastSync) {
-      const since = new Date(lastSync).toISOString();
-      changed = items.filter(ev => {
-        const upd = ev.updated || ev.created || ev.start?.dateTime || ev.start?.date;
-        return upd && upd > since;
-      });
+    // Detectar cambios "relevantes" (creados/actualizados dentro de ventana)
+    const changed = items.length;
+
+    // Si no hay cambios y no forzamos, salir rápido
+    if (!force && changed === 0) {
+      // Actualiza last_sync_ts por si acaso
+      await metaRef.set({ last_sync_ts: nowIso() }, { merge: true });
+      return res.json({ ok:true, message:'Sin cambios', changed:0 });
     }
 
-    // Si no hay cambios → actualiza timestamp y sal
-    if (changed.length === 0) {
-      await metaRef.set({ last_sync_ts: now.toISOString() }, { merge: true });
-      return ok(res, { message: "Sin cambios", changed: 0 });
-    }
-
-    // --- Tokens registrados ---
-    const tokSnap = await db().collection("fcm_tokens").get();
+    // Cargar tokens
+    const tokSnap = await db.collection('fcm_tokens').get();
     const tokens = tokSnap.docs.map(d => d.id).filter(Boolean);
+
     if (tokens.length === 0) {
-      await metaRef.set({ last_sync_ts: now.toISOString() }, { merge: true });
-      return ok(res, { message: "No hay tokens registrados", changed: changed.length, sent: 0 });
+      await metaRef.set({ last_sync_ts: nowIso() }, { merge: true });
+      return res.json({ ok:true, message:'No hay tokens registrados', changed, sent:0 });
     }
 
-    // --- Enviar una notificación por evento ---
-    let sentTotal = 0, failedTotal = 0, cleaned = 0;
-    const tokenChunks = chunk(tokens, 500);
+    // Construir notificación (muy simple y clara)
+    const title = 'Calendario actualizado';
+    const body = force
+      ? 'Se enviaron notificaciones de calendario.'
+      : `Se detectaron ${changed} cambio(s) en el calendario.`;
 
-    for (const ev of changed) {
-      const title = ev.summary || "Evento";
-      const body  = whenStr(ev);
+    // Enviar multicast
+    const msg = {
+      notification: { title, body },
+      data: {
+        type: 'calendar_update',
+        count: String(changed || 0),
+        ts: String(Date.now())
+      }
+    };
 
-      for (const group of tokenChunks) {
-        const resp = await admin.messaging().sendEachForMulticast({
-          tokens: group,
-          notification: { title, body },
-          data: {
-            type: "calendar_update",
-            eventId: ev.id || "",
-            start: ev.start?.dateTime || ev.start?.date || "",
-            location: ev.location || "",
-          },
-        });
+    const resp = await admin.messaging().sendMulticast({ tokens, ...msg });
 
-        sentTotal   += resp.successCount;
-        failedTotal += resp.failureCount;
-
-        // Limpia tokens inválidos
-        const invalid = [];
-        resp.responses.forEach((r, i) => {
-          if (!r.success) {
-            const code = r.error?.errorInfo?.code || r.error?.code || "";
-            if (code.includes("registration-token-not-registered") || code.includes("invalid-argument")) {
-              invalid.push(group[i]);
-            }
-          }
-        });
-        if (invalid.length) {
-          const batch = db().batch();
-          invalid.forEach(t => batch.delete(db().collection("fcm_tokens").doc(t)));
-          await batch.commit();
-          cleaned += invalid.length;
+    // Limpiar tokens inválidos
+    let cleaned = 0;
+    await Promise.all(resp.responses.map(async (r, i) => {
+      if (!r.success) {
+        const code = r.error?.code || '';
+        if (code.includes('registration-token-not-registered') || code.includes('messaging/invalid-registration-token')) {
+          cleaned++;
+          try { await db.collection('fcm_tokens').doc(tokens[i]).delete(); } catch {}
         }
       }
-    }
+    }));
 
-    // Guardar timestamp de sync
-    await metaRef.set({ last_sync_ts: now.toISOString() }, { merge: true });
+    // Guardar nuevo last_sync_ts
+    await metaRef.set({ last_sync_ts: nowIso() }, { merge: true });
 
-    return ok(res, {
-      changed: changed.length,
-      sent: sentTotal,
-      failed: failedTotal,
+    return res.json({
+      ok: true,
+      changed,
+      sent: resp.successCount,
+      failed: resp.failureCount,
       cleaned
     });
-
   } catch (err) {
-    return fail(res, err?.message || err);
+    console.error('push-calendar ERROR:', err);
+    return res.status(500).json({ ok:false, error: String(err?.message || err) });
   }
 }
