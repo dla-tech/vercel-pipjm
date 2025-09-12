@@ -1,9 +1,9 @@
 {
-  "name": "vercel-backend",
+  "name": "vercel-pipjm",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
-  "engines": { "node": "20.x" },
   "dependencies": {
-    "firebase-admin": "^12.0.0"
+    "googleapis": "^131.0.0"
   }
 }
