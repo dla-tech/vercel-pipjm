@@ -1,7 +1,3 @@
-// /api/push-calendar.js
-// Envía UNA notificación por cada evento nuevo/editado en Google Calendar.
-// Requiere env vars: GCAL_CALENDAR_ID, GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY, FIREBASE_SERVICE_ACCOUNT
-
 import { google } from "googleapis";
 import admin from "firebase-admin";
 
