@@ -1,9 +1,13 @@
 {
+  "functions": {
+    "api/*.js": {
+      "runtime": "nodejs20.x"
+    }
+  },
   "crons": [
     {
-      "path": "/api/push-calendar"
-      "schedule": "*/10 * * * *"
+      "path": "/api/push-calendar",
+      "schedule": "*/1 * * * *"
     }
   ]
 }
-
