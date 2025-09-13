@@ -1,39 +1,27 @@
-// firebase-messaging-sw.js
-// ==========================
-// Service Worker exclusivo de Firebase Cloud Messaging (FCM)
-// Maneja notificaciones cuando la PWA está cerrada o en segundo plano
-// ==========================
+// firebase-messaging-sw.js (en la RAÍZ del dominio)
+importScripts('https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.6.11/firebase-messaging-compat.js');
 
-// Importa los SDK de Firebase en modo compatibilidad
-// (No uses el import normal porque los service workers no soportan ESModules directamente)
-importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
-
-// Configuración de Firebase (la misma que en tu index.html)
+// 🔁 Usa TU config web de Firebase (apiKey, authDomain, projectId, senderId, appId)
 firebase.initializeApp({
-  apiKey: "AIzaSyA0Yj_GIZqNzMaH5ChzWsSz_spORbHKMiY",
-  authDomain: "miappiglesia.firebaseapp.com",
-  projectId: "miappiglesia",
-  storageBucket: "miappiglesia.firebasestorage.app",
-  messagingSenderId: "624809525779",
-  appId: "1:624809525779:web:2608aa1d23a84e466a35e6",
-  measurementId: "G-8LLBP4ZB45"
+  apiKey: "TU_API_KEY_WEB",
+  authDomain: "TU_PROYECTO.firebaseapp.com",
+  projectId: "TU_PROYECTO",
+  storageBucket: "TU_PROYECTO.appspot.com",
+  messagingSenderId: "TU_SENDER_ID",
+  appId: "TU_APP_ID",
 });
 
-// Inicializa Firebase Cloud Messaging
+// Inicializa FCM en el SW
 const messaging = firebase.messaging();
 
-// Manejo de notificaciones cuando la PWA está en background o cerrada
+// Notificaciones en segundo plano (cuando la app está cerrada)
 messaging.onBackgroundMessage((payload) => {
-  console.log('📩 Notificación recibida en background:', payload);
-
   const title = payload.notification?.title || "Notificación";
   const options = {
     body: payload.notification?.body || "",
-    icon: "icons/icon-192.png",
+    icon: "/icons/icon-192.png",   // opcional: ícono de tu PWA
     data: payload.data || {}
   };
-
-  // Mostrar la notificación en la bandeja del sistema
   self.registration.showNotification(title, options);
 });
