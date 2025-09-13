@@ -1,3 +1,4 @@
+// noop: trigger deploy
 // /api/push-calendar.js
 import { google } from 'googleapis';
 import admin from 'firebase-admin';
@@ -136,4 +137,3 @@ export default async function handler(req, res) {
     return res.status(500).json({ ok:false, error: String(err?.message || err) });
   }
 }
-// noop: trigger deploy
