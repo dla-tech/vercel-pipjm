@@ -9,11 +9,11 @@ if (!admin.apps.length) {
   });
 }
 
-// Configurar cliente de Google Calendar
+// Autenticación con Service Account de Calendar
 const auth = new google.auth.JWT(
   process.env.CALENDAR_CLIENT_EMAIL,
   null,
-  process.env.CALENDAR_PRIVATE_KEY.replace(/\\n/g, '\n'),
+  process.env.CALENDAR_PRIVATE_KEY.replace(/\\n/g, "\n"),
   ["https://www.googleapis.com/auth/calendar.readonly"]
 );
 
@@ -23,7 +23,7 @@ export default async function handler(req, res) {
   try {
     const calendarId = process.env.GOOGLE_CALENDAR_ID;
 
-    // Leer los próximos eventos
+    // Leer próximos eventos
     const eventsRes = await calendar.events.list({
       calendarId,
       timeMin: new Date().toISOString(),
@@ -34,8 +34,8 @@ export default async function handler(req, res) {
 
     const events = eventsRes.data.items || [];
 
-    // Enviar notificación si hubo cambios
-    if (events.length) {
+    // (Opcional) enviar notificaciones a los tokens en Firestore
+    if (events.length > 0) {
       const tokensSnap = await admin.firestore().collection("fcm_tokens").get();
       const tokens = tokensSnap.docs.map((doc) => doc.id);
 
@@ -50,7 +50,11 @@ export default async function handler(req, res) {
       }
     }
 
-    res.status(200).json({ ok: true, count: events.length });
+    res.status(200).json({
+      ok: true,
+      message: events.length ? "Eventos encontrados" : "Sin cambios",
+      changed: events.length,
+    });
   } catch (err) {
     console.error("Error en push-calendar:", err);
     res.status(500).json({ ok: false, error: err.message });
