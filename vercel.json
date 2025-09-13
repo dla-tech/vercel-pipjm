@@ -1,13 +1,11 @@
+
 {
   "functions": {
-    "api/push-calendar.js": {
-      "runtime": "nodejs18.x"
+    "api/*.js": {
+      "runtime": "nodejs20.x"
     }
   },
   "crons": [
-    {
-      "path": "/api/push-calendar",
-      "schedule": "*/1 * * * *"
-    }
+    { "path": "/api/push-calendar", "schedule": "*/1 * * * *" }
   ]
 }
