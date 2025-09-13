@@ -60,6 +60,4 @@ export default async function handler(req, res) {
       _sig: "push:jwt-only"
     });
   } catch (err) {
-    return res.status(500).json({ ok: false, error: err.message, _sig: "push:jwt-only" });
-  }
-}
+    return res.status(500).json({ ok: false, error: err.message, _sig: "push:jwt-
