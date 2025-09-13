@@ -1,10 +1,10 @@
 {
-  "name": "vercel-pipjm",
-  "version": "1.0.0",
-  "type": "module",
-  "private": true,
-  "dependencies": {
-    "firebase-admin": "^12.5.0",
-    "googleapis": "^131.0.0"
-  }
+  "functions": {
+    "api/*.js": {
+      "runtime": "nodejs20.x"
+    }
+  },
+  "crons": [
+    { "path": "/api/push-calendar", "schedule": "*/1 * * * *" }
+  ]
 }
