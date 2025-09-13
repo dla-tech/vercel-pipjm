@@ -1,97 +1,149 @@
-// /api/push-calendar.js (CommonJS + API KEY)
-const admin = require("firebase-admin");
-const { google } = require("googleapis");
+// api/push-calendar.js
+import admin from "firebase-admin";
 
-// Firebase Admin singleton
-function initAdmin() {
-  if (admin.apps.length) return admin.app();
-  const sa = process.env.FIREBASE_SERVICE_ACCOUNT;
-  if (!sa) throw new Error("Falta FIREBASE_SERVICE_ACCOUNT (JSON)");
-  return admin.initializeApp({ credential: admin.credential.cert(JSON.parse(sa)) });
+// --- Firebase Admin (desde env con JSON en una sola línea) ---
+if (!admin.apps.length) {
+  const svc = process.env.FIREBASE_SERVICE_ACCOUNT;
+  if (!svc) {
+    console.error("FIREBASE_SERVICE_ACCOUNT missing");
+  } else {
+    admin.initializeApp({
+      credential: admin.credential.cert(JSON.parse(svc)),
+    });
+  }
+}
+const db = admin.firestore();
+
+// --- Helpers ---
+const ISO = (d) => new Date(d).toISOString();
+
+// Construye URL segura a events.list
+function buildEventsUrl({ calendarId, apiKey, timeMin, timeMax, maxResults = 25 }) {
+  const base = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(
+    calendarId
+  )}/events`;
+  const params = new URLSearchParams({
+    key: apiKey,
+    singleEvents: "true",
+    orderBy: "startTime",
+    timeMin,
+    timeMax,
+    maxResults: String(maxResults),
+  });
+  return `${base}?${params.toString()}`;
 }
 
-const nowIso = () => new Date().toISOString();
-const addDaysIso = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString(); };
-
-module.exports = async (req, res) => {
+// --- Handler ---
+export default async function handler(req, res) {
   try {
+    // CORS simple
+    const o = req.headers.origin || "*";
+    res.setHeader("Access-Control-Allow-Origin", o);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    if (req.method === "OPTIONS") return res.status(204).end();
+
     const CAL_ID = process.env.GCAL_CALENDAR_ID;
     const API_KEY = process.env.GCAL_API_KEY;
     if (!CAL_ID || !API_KEY) {
-      return res.status(500).json({ ok:false, error:"Faltan GCAL_CALENDAR_ID o GCAL_API_KEY" });
+      return res.status(500).json({ ok: false, error: "Missing GCAL_CALENDAR_ID or GCAL_API_KEY" });
     }
 
-    const app = initAdmin();
-    const db = admin.firestore(app);
+    // Ventana de consulta: hoy → +14 días (o force ⇒ +30 minutos hacia atrás para detectar cambios recientes)
+    const now = new Date();
+    const force = String(req.query.force || "") === "1";
+    const timeMin = force ? ISO(new Date(now.getTime() - 30 * 60 * 1000)) : ISO(now);
+    const timeMax = ISO(new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000));
 
-    const force = String(req.query?.force || "") === "1";
-    const metaRef = db.collection("meta").doc("calendar");
-    const metaSnap = await metaRef.get();
-    const lastSync = (!force && metaSnap.exists) ? metaSnap.get("last_sync_ts") : null;
+    // Llama Google Calendar v3 /events
+    const url = buildEventsUrl({ calendarId: CAL_ID, apiKey: API_KEY, timeMin, timeMax, maxResults: 50 });
+    const rsp = await fetch(url);
+    const text = await rsp.text();
 
-    // Ventana de consulta
-    const timeMin = addDaysIso(-1);
-    const timeMax = addDaysIso(30);
-
-    // Google Calendar usando API KEY (NO requiere compartir con service account)
-    const calendar = google.calendar({ version: "v3" });
-    const params = {
-      calendarId: CAL_ID,
-      timeMin,
-      timeMax,
-      singleEvents: true,
-      orderBy: "updated",
-      key: API_KEY
-    };
-    if (lastSync && !force) params.updatedMin = new Date(lastSync).toISOString();
-
-    const { data } = await calendar.events.list(params);
-    const items = data.items || [];
-
-    if (!force && items.length === 0) {
-      await metaRef.set({ last_sync_ts: nowIso() }, { merge: true });
-      return res.json({ ok:true, message:"Sin cambios", changed:0 });
+    if (!rsp.ok) {
+      // Devuelve el error crudo para diagnóstico
+      return res.status(502).json({
+        ok: false,
+        error: "Google Calendar error",
+        status: rsp.status,
+        raw: text.slice(0, 500),
+        url,
+      });
     }
 
-    // Tokens
-    const tokSnap = await db.collection("fcm_tokens").get();
-    const tokens = Array.from(new Set(tokSnap.docs.map(d => d.id).filter(Boolean)));
-    if (tokens.length === 0) {
-      await metaRef.set({ last_sync_ts: nowIso() }, { merge: true });
-      return res.json({ ok:true, message:"No hay tokens registrados", changed: items.length, sent:0 });
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      return res.status(502).json({ ok: false, error: "Non-JSON response from Google", raw: text.slice(0, 500) });
     }
 
-    const title = "Calendario actualizado";
-    const body = force
-      ? "Notificación forzada del calendario."
-      : `Se detectaron ${items.length} cambio(s) en el calendario.`;
+    const items = Array.isArray(data.items) ? data.items : [];
+
+    // Lee tokens
+    const snap = await db.collection("fcm_tokens").get();
+    const tokens = [];
+    snap.forEach((doc) => {
+      const t = doc.get("token");
+      if (typeof t === "string" && t.length > 0) tokens.push(t);
+    });
+
+    // Si no hay tokens o eventos, responde informativo
+    if (!tokens.length) {
+      return res.status(200).json({ ok: true, sent: 0, changed: 0, tokens: 0, items: items.length, note: "No tokens" });
+    }
+    if (!items.length) {
+      return res.status(200).json({ ok: true, sent: 0, changed: 0, tokens: tokens.length, items: 0, note: "No upcoming events" });
+    }
+
+    // Arma un mensaje simple (título + fecha del próximo evento)
+    const next = items[0];
+    const summary = next.summary || "Nuevo evento";
+    const startIso = next.start?.dateTime || next.start?.date || "";
+    const when = startIso ? new Date(startIso).toLocaleString("es-PR", { dateStyle: "medium", timeStyle: "short" }) : "";
 
     const payload = {
-      notification: { title, body },
-      data: { type: "calendar_update", count: String(items.length), ts: String(Date.now()) }
+      notification: {
+        title: "Calendario actualizado",
+        body: when ? `${summary} • ${when}` : summary,
+      },
+      data: {
+        kind: "calendar_update",
+        summary: summary || "",
+        start: startIso || "",
+        id: next.id || "",
+      },
     };
 
-    const resp = await admin.messaging().sendMulticast({ tokens, ...payload });
+    // Envía multicast
+    const resp = await admin.messaging().sendEachForMulticast({ tokens, ...payload });
 
-    // Limpieza de tokens inválidos
+    // Limpia tokens inválidos (opcional)
     let cleaned = 0;
-    await Promise.all(resp.responses.map(async (r, i) => {
+    resp.responses.forEach((r, idx) => {
       if (!r.success) {
-        const code = r.error?.code || "";
-        if (code.includes("registration-token-not-registered") || code.includes("messaging/invalid-registration-token")) {
+        const code = r.error?.errorInfo?.code || r.error?.code || "";
+        if (code.includes("registration-token-not-registered") || code.includes("invalid-argument")) {
+          const tok = tokens[idx];
+          db.collection("fcm_tokens").doc(tok).delete().catch(() => {});
           cleaned++;
-          try { await db.collection("fcm_tokens").doc(tokens[i]).delete(); } catch {}
         }
       }
-    }));
+    });
 
-    await metaRef.set({ last_sync_ts: nowIso() }, { merge: true });
-
-    res.json({ ok:true, changed: items.length, sent: resp.successCount, failed: resp.failureCount, cleaned });
-  } catch (e) {
-    console.error("push-calendar ERROR:", e?.response?.data || e);
-    // Si Google API trae error, lo exponemos para diagnóstico
-    const details = e?.response?.data || { message: e.message };
-    res.status(500).json({ ok:false, error:"Google Calendar/Push error", details });
+    const sent = resp.responses.filter((r) => r.success).length;
+    return res.status(200).json({
+      ok: true,
+      urlUsed: url,
+      tokens: tokens.length,
+      items: items.length,
+      sent,
+      failed: resp.responses.length - sent,
+      cleaned,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ ok: false, error: String(err?.message || err) });
   }
-};
+}
