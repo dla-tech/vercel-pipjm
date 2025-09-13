@@ -1,0 +1,10 @@
+{
+  "name": "vercel-pipjm",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "googleapis": "^131.0.0",
+    "firebase-admin": "^12.6.0"
+  }
+}
